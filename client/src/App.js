@@ -1,22 +1,15 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import "./App.css";
 
 function App() {
-  const [users, setUsers] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
   const [username, setUsername] = useState("");
   const [joined, setJoined] = useState(false);
-  const [tool, setTool] = useState("brush");
-  const [color, setColor] = useState("#000000");
-  const [strokeWidth, setStrokeWidth] = useState(3);
-  const canvasRef = useRef(null);
 
   const handleJoinRoom = (e) => {
     e.preventDefault();
     if (username.trim()) {
       // TODO: Connect to WebSocket
       setJoined(true);
-      setCurrentUser({ username: username.trim() });
     }
   };
 
