@@ -1,0 +1,23 @@
+.canvas-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #ffffff;
+  cursor: crosshair;
+}
+
+.drawing-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+/* Cursor styles based on tool */
+.canvas-wrapper.brush {
+  cursor: crosshair;
+}
+
+.canvas-wrapper.eraser {
+  cursor: cell;
+}

@@ -1,15 +1,25 @@
-import React, { useState } from "react";
-import "./App.css";
+import React, { useState, useRef } from 'react';
+import Canvas from './components/Canvas';
+import Toolbar from './components/Toolbar';
+import UserList from './components/UserList';
+import './App.css';
 
 function App() {
-  const [username, setUsername] = useState("");
+  const [users, setUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [username, setUsername] = useState('');
   const [joined, setJoined] = useState(false);
+  const [tool, setTool] = useState('brush');
+  const [color, setColor] = useState('#000000');
+  const [strokeWidth, setStrokeWidth] = useState(3);
+  const canvasRef = useRef(null);
 
   const handleJoinRoom = (e) => {
     e.preventDefault();
     if (username.trim()) {
       // TODO: Connect to WebSocket
       setJoined(true);
+      setCurrentUser({ username: username.trim() });
     }
   };
 
@@ -42,6 +52,33 @@ function App() {
           <h1>🎨 Collaborative Canvas</h1>
         </div>
       </header>
+
+      <div className="app-content">
+        <aside className="sidebar left">
+          <Toolbar
+            tool={tool}
+            color={color}
+            strokeWidth={strokeWidth}
+            onToolChange={setTool}
+            onColorChange={setColor}
+            onStrokeWidthChange={setStrokeWidth}
+          />
+        </aside>
+
+        <main className="canvas-container">
+          <Canvas
+            ref={canvasRef}
+            tool={tool}
+            color={color}
+            strokeWidth={strokeWidth}
+            currentUser={currentUser}
+          />
+        </main>
+
+        <aside className="sidebar right">
+          <UserList users={users} currentUser={currentUser} />
+        </aside>
+      </div>
     </div>
   );
 }
