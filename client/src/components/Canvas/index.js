@@ -2,6 +2,7 @@ import React, {
   useRef,
   useEffect,
   useState,
+  useCallback,
   useImperativeHandle,
   forwardRef,
 } from "react";
@@ -21,6 +22,25 @@ const Canvas = forwardRef(
     const animationFrameId = useRef(null);
     const lastEmitTime = useRef(0);
     const EMIT_THROTTLE = 16;
+
+    const redrawCanvas = useCallback(() => {
+      const context = contextRef.current;
+      if (!context) return;
+
+      const canvas = canvasRef.current;
+      const dpr = window.devicePixelRatio || 1;
+
+      context.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+
+      context.save();
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+      context.restore();
+
+      drawingHistory.forEach((operation) => {
+        drawOperation(operation);
+      });
+    }, [drawingHistory]);
 
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -50,32 +70,15 @@ const Canvas = forwardRef(
       resizeCanvas();
       window.addEventListener("resize", resizeCanvas);
 
+      const frameId = animationFrameId.current;
+
       return () => {
         window.removeEventListener("resize", resizeCanvas);
-        if (animationFrameId.current) {
-          cancelAnimationFrame(animationFrameId.current);
+        if (frameId) {
+          cancelAnimationFrame(frameId);
         }
       };
-    }, [drawingHistory]);
-
-    const redrawCanvas = () => {
-      const context = contextRef.current;
-      if (!context) return;
-
-      const canvas = canvasRef.current;
-      const dpr = window.devicePixelRatio || 1;
-
-      context.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
-
-      context.save();
-      context.fillStyle = "#ffffff";
-      context.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
-      context.restore();
-
-      drawingHistory.forEach((operation) => {
-        drawOperation(operation);
-      });
-    };
+    }, [redrawCanvas]);
 
     const drawOperation = (operation) => {
       const context = contextRef.current;
