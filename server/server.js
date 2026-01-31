@@ -2,69 +2,162 @@ const express = require("express");
 const http = require("http");
 const socketIo = require("socket.io");
 const cors = require("cors");
+const { RoomManager } = require("./rooms");
+const { DrawingStateManager } = require("./drawing-state");
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(
-  server,
-  {
-    cors: {
-      origin: "http://localhost:3000",
-      methods: ["GET", "POST"],
-    },
+const io = socketIo(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    methods: ["GET", "POST"],
   },
-);
+});
 
 app.use(cors());
 app.use(express.json());
 
-// Store active users
-const rooms = new Map();
+const roomManager = new RoomManager();
+const drawingStateManager = new DrawingStateManager();
 
-// Checking
+// checking
 app.get("/", (req, res) => {
-  res.json({ status: "ok" });
+  res.json({
+    status: "ok",
+    rooms: roomManager.getRoomCount(),
+    users: roomManager.getTotalUsers(),
+  });
+});
+
+// Get room info
+app.get("/rooms/:roomId", (req, res) => {
+  const room = roomManager.getRoom(req.params.roomId);
+  if (room) {
+    res.json(room);
+  } else {
+    res.status(404).json({ error: "Room not found" });
+  }
 });
 
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  // Handle user joining a room
+  let currentRoom = null;
+  let currentUser = null;
+
   socket.on("join-room", ({ roomId, username }) => {
-    const room = roomId || "default";
-    socket.join(room);
+    try {
+      if (currentRoom) {
+        roomManager.removeUserFromRoom(currentRoom, socket.id);
+        socket.leave(currentRoom);
+      }
 
-    // Store user info
-    if (!rooms.has(room)) {
-      rooms.set(room, new Map());
+      currentRoom = roomId || "default";
+      currentUser = {
+        id: socket.id,
+        username: username || `User${Math.floor(Math.random() * 1000)}`,
+        color: generateUserColor(),
+      };
+
+      socket.join(currentRoom);
+      roomManager.addUserToRoom(currentRoom, currentUser);
+
+      const roomState = drawingStateManager.getRoomState(currentRoom);
+      socket.emit("room-state", {
+        users: roomManager.getRoomUsers(currentRoom),
+        drawingHistory: roomState.history,
+        currentUser,
+      });
+
+      // Notify others in the room
+      socket.to(currentRoom).emit("user-joined", currentUser);
+
+      console.log(`User ${currentUser.username} joined room ${currentRoom}`);
+    } catch (error) {
+      console.error("Error joining room:", error);
+      socket.emit("error", { message: "Failed to join room" });
     }
-
-    const user = {
-      id: socket.id,
-      username: username || `User${Math.floor(Math.random() * 1000)}`,
-      color: generateUserColor(),
-    };
-
-    rooms.get(room).set(socket.id, user);
-
-    // Notify user
-    socket.emit("room-joined", { user, room });
-
-    // Notify others
-    socket.to(room).emit("user-joined", user);
-
-    console.log(`${username} joined room ${room}`);
   });
 
-  // Handle drawing events
   socket.on("draw", (drawData) => {
-    // Broadcast to others in the same room
-    const room = Array.from(socket.rooms)[1]; // Get the room the user is in
-    if (room) {
-      socket.to(room).emit("draw", {
+    if (!currentRoom) return;
+
+    try {
+      const enrichedData = {
         ...drawData,
         userId: socket.id,
-      });
+        username: currentUser?.username,
+        timestamp: Date.now(),
+      };
+
+      drawingStateManager.addDrawing(currentRoom, enrichedData);
+
+      // Broadcast to all other users in the room
+      socket.to(currentRoom).emit("draw", enrichedData);
+    } catch (error) {
+      console.error("Error handling draw event:", error);
+    }
+  });
+
+  // Handle cursor movement
+  socket.on("cursor-move", (cursorData) => {
+    if (!currentRoom) return;
+
+    socket.to(currentRoom).emit("cursor-move", {
+      ...cursorData,
+      userId: socket.id,
+      username: currentUser?.username,
+      color: currentUser?.color,
+    });
+  });
+
+  // Handle undo operation
+  socket.on("undo", () => {
+    if (!currentRoom) return;
+
+    try {
+      const undoneOperation = drawingStateManager.undo(currentRoom);
+
+      if (undoneOperation) {
+        // Broadcast undo to all users in the room
+        io.to(currentRoom).emit("undo", {
+          operationId: undoneOperation.id,
+          userId: socket.id,
+        });
+      }
+    } catch (error) {
+      console.error("Error handling undo:", error);
+    }
+  });
+
+  // Handle redo operation
+  socket.on("redo", () => {
+    if (!currentRoom) return;
+
+    try {
+      const redoneOperation = drawingStateManager.redo(currentRoom);
+
+      if (redoneOperation) {
+        // Broadcast redo to all users in the room
+        io.to(currentRoom).emit("redo", {
+          operation: redoneOperation,
+          userId: socket.id,
+        });
+      }
+    } catch (error) {
+      console.error("Error handling redo:", error);
+    }
+  });
+
+  // Handle clear canvas
+  socket.on("clear-canvas", () => {
+    if (!currentRoom) return;
+
+    try {
+      drawingStateManager.clearRoom(currentRoom);
+      io.to(currentRoom).emit("clear-canvas", { userId: socket.id });
+    } catch (error) {
+      console.error("Error clearing canvas:", error);
     }
   });
 
@@ -72,23 +165,23 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);
 
-    // Remove user from all rooms
-    for (const [roomId, users] of rooms.entries()) {
-      if (users.has(socket.id)) {
-        const user = users.get(socket.id);
-        users.delete(socket.id);
+    if (currentRoom && currentUser) {
+      roomManager.removeUserFromRoom(currentRoom, socket.id);
+      socket.to(currentRoom).emit("user-left", {
+        userId: socket.id,
+        username: currentUser.username,
+      });
 
-        io.to(roomId).emit("user-left", {
-          userId: socket.id,
-          username: user.username,
-        });
-
-        // Clean up empty rooms
-        if (users.size === 0) {
-          rooms.delete(roomId);
-        }
+      // Clean up empty rooms
+      if (roomManager.getRoomUsers(currentRoom).length === 0) {
+        drawingStateManager.cleanupRoom(currentRoom);
       }
     }
+  });
+
+  // Handle errors
+  socket.on("error", (error) => {
+    console.error("Socket error:", error);
   });
 });
 
@@ -109,8 +202,19 @@ function generateUserColor() {
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(
+    `Accepting connections from ${process.env.CLIENT_URL || "http://localhost:3000"}`,
+  );
+});
+
+// shutdown
+process.on("SIGTERM", () => {
+  console.log("SIGTERM signal received: closing HTTP server");
+  server.close(() => {
+    console.log("HTTP server closed");
+  });
 });

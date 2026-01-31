@@ -10,14 +10,88 @@
   width: 100%;
   height: 100%;
   display: block;
-  touch-action: none;
+  touch-action: none; /* Prevent scrolling on mobile */
 }
 
-/* Cursor styles based on tool */
+.remote-cursor {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 2px solid;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1000;
+  transform: translate(-50%, -50%);
+  transition: all 0.05s linear;
+  animation: fadeIn 0.2s;
+}
+
+.cursor-label {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
 .canvas-wrapper.brush {
   cursor: crosshair;
 }
 
 .canvas-wrapper.eraser {
   cursor: cell;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .canvas-wrapper {
+    cursor: default;
+  }
+  
+  .remote-cursor {
+    display: none; 
+  }
+}
+
+.canvas-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #666;
+}
+
+.canvas-loading::after {
+  content: '...';
+  animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0%, 20% {
+    content: '.';
+  }
+  40% {
+    content: '..';
+  }
+  60%, 100% {
+    content: '...';
+  }
 }

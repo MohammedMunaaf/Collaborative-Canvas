@@ -20,6 +20,10 @@ const UserList = ({ users, currentUser }) => {
                 {user.username}
                 {user.id === currentUser?.id && " (You)"}
               </div>
+              <div className="user-status">
+                <span className="status-dot online"></span>
+                Online
+              </div>
             </div>
           </div>
         ))}
@@ -27,6 +31,12 @@ const UserList = ({ users, currentUser }) => {
         {users.length === 0 && (
           <div className="no-users">No other users online</div>
         )}
+      </div>
+
+      <div className="user-list-footer">
+        <div className="tip">
+          💡 Tip: Share the room ID with friends to draw together!
+        </div>
       </div>
     </div>
   );

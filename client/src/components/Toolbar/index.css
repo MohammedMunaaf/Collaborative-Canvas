@@ -20,7 +20,6 @@
   margin-bottom: 0.5rem;
 }
 
-/* Tool buttons */
 .tool-buttons {
   display: flex;
   flex-direction: column;
@@ -60,7 +59,6 @@
   font-weight: 500;
 }
 
-/* Color selector */
 .color-selector {
   position: relative;
 }
@@ -131,6 +129,61 @@
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
 }
 
+.custom-color {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.custom-color label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.custom-color input[type="color"] {
+  flex: 1;
+  height: 40px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.stroke-selector {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.stroke-btn {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f5f5f5;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stroke-btn:hover {
+  background: #e8e8e8;
+}
+
+.stroke-btn.active {
+  background: white;
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.stroke-preview {
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
 .stroke-slider {
   width: 100%;
   height: 6px;
@@ -166,4 +219,66 @@
   font-weight: 600;
   color: #667eea;
   margin-top: 0.5rem;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.action-btn {
+  padding: 0.75rem 1rem;
+  background: #f5f5f5;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.action-btn:hover {
+  background: #e8e8e8;
+  transform: translateX(2px);
+}
+
+.action-btn.danger {
+  color: #ef4444;
+}
+
+.action-btn.danger:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+kbd {
+  padding: 0.25rem 0.5rem;
+  background: #f5f5f5;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .toolbar {
+    padding: 1rem;
+    gap: 1.5rem;
+  }
+  
+  .toolbar-section h3 {
+    font-size: 0.75rem;
+  }
+  
+  .tool-btn {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .color-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
 }
