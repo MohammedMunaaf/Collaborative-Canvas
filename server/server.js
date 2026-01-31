@@ -40,7 +40,6 @@ app.get("/rooms/:roomId", (req, res) => {
 });
 
 io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`);
 
   let currentRoom = null;
   let currentUser = null;
@@ -72,7 +71,6 @@ io.on("connection", (socket) => {
       // Notify others in the room
       socket.to(currentRoom).emit("user-joined", currentUser);
 
-      console.log(`User ${currentUser.username} joined room ${currentRoom}`);
     } catch (error) {
       console.error("Error joining room:", error);
       socket.emit("error", { message: "Failed to join room" });
@@ -163,7 +161,6 @@ io.on("connection", (socket) => {
 
   // Handle disconnect
   socket.on("disconnect", () => {
-    console.log(`User disconnected: ${socket.id}`);
 
     if (currentRoom && currentUser) {
       roomManager.removeUserFromRoom(currentRoom, socket.id);
@@ -205,7 +202,6 @@ function generateUserColor() {
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
   console.log(
     `Accepting connections from ${process.env.CLIENT_URL || "http://localhost:3000"}`,
   );

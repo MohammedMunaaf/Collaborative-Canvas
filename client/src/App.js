@@ -39,7 +39,6 @@ function App() {
     });
 
     wsManager.on("room-state", (data) => {
-      console.log("Received room state:", data);
       setUsers(data.users);
       setCurrentUser(data.currentUser);
 

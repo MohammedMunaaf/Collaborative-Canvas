@@ -36,7 +36,6 @@ class RoomManager {
           const currentRoom = this.rooms.get(roomId);
           if (currentRoom && currentRoom.users.size === 0) {
             this.rooms.delete(roomId);
-            console.log(`Room ${roomId} deleted due to inactivity`);
           }
         },
         5 * 60 * 1000,

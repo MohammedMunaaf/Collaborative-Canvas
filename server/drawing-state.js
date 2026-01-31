@@ -141,7 +141,6 @@ class DrawingStateManager {
       setTimeout(
         () => {
           this.rooms.delete(roomId);
-          console.log(`Drawing state for room ${roomId} cleaned up`);
         },
         10 * 60 * 1000,
       ); // Keeping for 10 minutes for any rejoins
