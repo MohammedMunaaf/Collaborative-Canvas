@@ -40,7 +40,6 @@ app.get("/rooms/:roomId", (req, res) => {
 });
 
 io.on("connection", (socket) => {
-
   let currentRoom = null;
   let currentUser = null;
 
@@ -70,7 +69,6 @@ io.on("connection", (socket) => {
 
       // Notify others in the room
       socket.to(currentRoom).emit("user-joined", currentUser);
-
     } catch (error) {
       console.error("Error joining room:", error);
       socket.emit("error", { message: "Failed to join room" });
@@ -110,7 +108,7 @@ io.on("connection", (socket) => {
   });
 
   // Handle undo operation
-  socket.on("undo", () => {
+  socket.on("undo", (data) => {
     if (!currentRoom) return;
 
     try {
@@ -120,6 +118,7 @@ io.on("connection", (socket) => {
         // Broadcast undo to all users in the room
         io.to(currentRoom).emit("undo", {
           operationId: undoneOperation.id,
+          operation: undoneOperation,
           userId: socket.id,
         });
       }
@@ -129,7 +128,7 @@ io.on("connection", (socket) => {
   });
 
   // Handle redo operation
-  socket.on("redo", () => {
+  socket.on("redo", (data) => {
     if (!currentRoom) return;
 
     try {
@@ -161,7 +160,6 @@ io.on("connection", (socket) => {
 
   // Handle disconnect
   socket.on("disconnect", () => {
-
     if (currentRoom && currentUser) {
       roomManager.removeUserFromRoom(currentRoom, socket.id);
       socket.to(currentRoom).emit("user-left", {

@@ -1,7 +1,7 @@
 class DrawingStateManager {
   constructor() {
     this.rooms = new Map();
-    this.maxHistorySize = 500; // Limit history to prevent memory issues
+    this.maxHistorySize = 1000; // Limit history to prevent memory issues
   }
 
   /**
@@ -12,8 +12,6 @@ class DrawingStateManager {
       this.rooms.set(roomId, {
         history: [],
         undoStack: [],
-        currentIndex: -1,
-        savedStates: new Map(),
         createdAt: Date.now(),
       });
     }
@@ -30,23 +28,16 @@ class DrawingStateManager {
       timestamp: Date.now(),
     };
 
-    // When a new operation is added, clear any redo stack
-    if (room.currentIndex < room.history.length - 1) {
-      room.history = room.history.slice(0, room.currentIndex + 1);
-    }
-
     // Add to history
     room.history.push(operation);
-    room.currentIndex = room.history.length - 1;
 
     // Clear undo stack since we have a new operation
-    room.undoStack = [];
+    // room.undoStack = [];
 
     // Limit history size to prevent memory issues
     if (room.history.length > this.maxHistorySize) {
       const removeCount = room.history.length - this.maxHistorySize;
       room.history = room.history.slice(removeCount);
-      room.currentIndex -= removeCount;
     }
 
     return operation;
@@ -55,43 +46,33 @@ class DrawingStateManager {
   // Undo the last operation
   undo(roomId) {
     const room = this.rooms.get(roomId);
-    if (!room || room.currentIndex < 0) {
+    if (!room || room.history.length === 0) {
       return null;
     }
 
-    // Get the operation to undo
-    const operation = room.history[room.currentIndex];
+    // Get last stroke & remove from history
+    const lastOp = room.history.pop();
 
-    // Move the index back
-    room.currentIndex--;
+    // Add to redo stack
+    room.undoStack.push(lastOp);
 
-    // Add to undo stack
-    room.undoStack.push(operation);
-
-    return operation;
+    return lastOp;
   }
 
   // Redo the last undone operation
-
   redo(roomId) {
     const room = this.rooms.get(roomId);
-    if (!room || room.currentIndex >= room.history.length - 1) {
+    if (!room || room.undoStack.length === 0) {
       return null;
     }
 
-    // Move the index forward
-    room.currentIndex++;
+    // Get from undo stack
+    const redoneOperation = room.undoStack.pop();
 
-    // Get the operation to redo
-    const operation = room.history[room.currentIndex];
+    // Add back to history
+    room.history.push(redoneOperation);
 
-    // Remove from undo stack if present
-    const undoIndex = room.undoStack.findIndex((op) => op.id === operation.id);
-    if (undoIndex !== -1) {
-      room.undoStack.splice(undoIndex, 1);
-    }
-
-    return operation;
+    return redoneOperation;
   }
 
   // Get the current state of a room
@@ -99,11 +80,10 @@ class DrawingStateManager {
     const room = this.initializeRoom(roomId);
 
     return {
-      history: room.history.slice(0, room.currentIndex + 1),
-      canUndo: room.currentIndex >= 0,
-      canRedo: room.currentIndex < room.history.length - 1,
+      history: room.history,
+      canUndo: room.history.length > 0,
+      canRedo: room.undoStack.length > 0,
       operationCount: room.history.length,
-      currentIndex: room.currentIndex,
     };
   }
 
@@ -117,22 +97,7 @@ class DrawingStateManager {
     if (room) {
       room.history = [];
       room.undoStack = [];
-      room.currentIndex = -1;
     }
-  }
-
-  saveCanvas(roomId, canvasData) {
-    const room = this.initializeRoom(roomId);
-    room.savedStates.set("latest", {
-      data: canvasData,
-      timestamp: Date.now(),
-      operationCount: room.history.length,
-    });
-  }
-
-  getSavedCanvas(roomId) {
-    const room = this.rooms.get(roomId);
-    return room?.savedStates.get("latest") || null;
   }
 
   cleanupRoom(roomId) {
@@ -153,10 +118,9 @@ class DrawingStateManager {
 
     return {
       totalOperations: room.history.length,
-      currentIndex: room.currentIndex,
       undoStackSize: room.undoStack.length,
-      canUndo: room.currentIndex >= 0,
-      canRedo: room.currentIndex < room.history.length - 1,
+      canUndo: room.history.length > 0,
+      canRedo: room.history.length > 0,
     };
   }
 
@@ -165,9 +129,7 @@ class DrawingStateManager {
     const room = this.rooms.get(roomId);
     if (!room) return [];
 
-    return room.history
-      .slice(0, room.currentIndex + 1)
-      .filter((op) => op.timestamp > timestamp);
+    return room.history.filter((op) => op.timestamp > timestamp);
   }
 
   batchAddOperations(roomId, operations) {
@@ -179,7 +141,6 @@ class DrawingStateManager {
       }
     });
 
-    room.currentIndex = room.history.length - 1;
     return room.history.length;
   }
 }

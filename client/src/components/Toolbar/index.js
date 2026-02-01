@@ -40,11 +40,11 @@ const Toolbar = ({
   ];
 
   const strokeSizes = [
-    { value: 1, label: "Thin" },
-    { value: 3, label: "Normal" },
-    { value: 5, label: "Medium" },
-    { value: 8, label: "Thick" },
-    { value: 12, label: "Very Thick" },
+    { value: 2, label: "Thin" },
+    { value: 8, label: "Normal" },
+    { value: 15, label: "Medium" },
+    { value: 25, label: "Thick" },
+    { value: 40, label: "Very Thick" },
   ];
 
   return (
@@ -117,8 +117,8 @@ const Toolbar = ({
               <div
                 className="stroke-preview"
                 style={{
-                  width: `${size.value * 2}px`,
-                  height: `${size.value * 2}px`,
+                  width: `${size.value / 2}px`,
+                  height: `${size.value / 2}px`,
                   backgroundColor: color,
                 }}
               />
@@ -128,7 +128,7 @@ const Toolbar = ({
         <input
           type="range"
           min="1"
-          max="20"
+          max="50"
           value={strokeWidth}
           onChange={(e) => onStrokeWidthChange(parseInt(e.target.value))}
           className="stroke-slider"

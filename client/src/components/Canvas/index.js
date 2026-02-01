@@ -12,10 +12,10 @@ const Canvas = forwardRef(
   ({ socket, tool, color, strokeWidth, currentUser }, ref) => {
     const canvasRef = useRef(null);
     const contextRef = useRef(null);
+    const historyRef = useRef([]);
     const [isDrawing, setIsDrawing] = useState(false);
     const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
     const [drawingHistory, setDrawingHistory] = useState([]);
-    const [redoStack, setRedoStack] = useState([]);
     const [currentPath, setCurrentPath] = useState([]);
     const [remoteCursors, setRemoteCursors] = useState(new Map());
     const cursorTimeouts = useRef(new Map());
@@ -79,6 +79,11 @@ const Canvas = forwardRef(
         }
       };
     }, [redrawCanvas]);
+
+    useEffect(() => {
+      historyRef.current = drawingHistory;
+      redrawCanvas();
+    }, [drawingHistory, redrawCanvas]);
 
     const drawOperation = (operation) => {
       const context = contextRef.current;
@@ -174,24 +179,21 @@ const Canvas = forwardRef(
         };
 
         setDrawingHistory((prev) => [...prev, operation]);
-        setRedoStack([]); // Clear redo stack
         if (socket) socket.emit("draw", operation);
       }
       setCurrentPath([]);
     };
 
     const undo = () => {
-      if (drawingHistory.length === 0) return;
-      const lastOp = drawingHistory[drawingHistory.length - 1];
-      setRedoStack((prev) => [lastOp, ...prev]);
-      setDrawingHistory((prev) => prev.slice(0, -1));
+      if (socket) {
+        socket.emit("undo");
+      }
     };
 
     const redo = () => {
-      if (redoStack.length === 0) return;
-      const nextOp = redoStack[0];
-      setRedoStack((prev) => prev.slice(1));
-      setDrawingHistory((prev) => [...prev, nextOp]);
+      if (socket) {
+        socket.emit("redo");
+      }
     };
 
     const handleMouseDown = (e) => startDrawing(getMousePos(e));
@@ -256,17 +258,16 @@ const Canvas = forwardRef(
     };
 
     const handleRemoteUndo = (data) => {
-      setDrawingHistory((prev) =>
-        prev.filter((op) => op.id !== data.operationId),
-      );
-      setTimeout(() => redrawCanvas(), 0);
+      setDrawingHistory((prev) => {
+        const op = prev.find((o) => o.id === data.operationId);
+        if (!op) return prev;
+
+        return prev.filter((o) => o.id !== data.operationId);
+      });
     };
 
     const handleRemoteRedo = (data) => {
-      if (data.operation) {
-        setDrawingHistory((prev) => [...prev, data.operation]);
-        setTimeout(() => redrawCanvas(), 0);
-      }
+      setDrawingHistory((prev) => [...prev, data.operation]);
     };
 
     const clearCanvas = () => {
